@@ -13,10 +13,10 @@ That is compiled to run on MiSTer. There is a patch that adds escape, and enter 
 The joystick emulation maps to these keys:
 ```
 right,left,up,down
-btn1 - enter
-btn2 - escape
-btn3 - space
-btn4 - tab
+btn1 - enter   -- next page
+btn2 - escape  -- quit
+btn3 - space   -- down
+btn4 - tab     -- index view
 ```
 
 
