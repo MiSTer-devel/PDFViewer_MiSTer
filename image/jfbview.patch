@@ -1,0 +1,20 @@
+diff --git a/src/main.cpp b/src/main.cpp
+index 319a1c1..1449e89 100644
+--- a/src/main.cpp
++++ b/src/main.cpp
+@@ -671,6 +671,7 @@ std::unique_ptr<Registry> BuildRegistry() {
+   std::unique_ptr<Registry> registry = std::make_unique<Registry>();
+ 
+   registry->Register('q', std::move(std::make_unique<ExitCommand>()));
++  registry->Register(27, std::move(std::make_unique<ExitCommand>()));
+ 
+   registry->Register('h', std::move(std::make_unique<MoveLeftCommand>()));
+   registry->Register(KEY_LEFT, std::move(std::make_unique<MoveLeftCommand>()));
+@@ -686,6 +687,7 @@ std::unique_ptr<Registry> BuildRegistry() {
+       6 /* CTRL-F */, std::move(std::make_unique<ScreenDownCommand>()));  // ^F
+   registry->Register(
+       2 /* CTRL-B */, std::move(std::make_unique<ScreenUpCommand>()));  // ^B
++  registry->Register(KEY_ENTER, std::move(std::make_unique<PageDownCommand>()));
+   registry->Register('J', std::move(std::make_unique<PageDownCommand>()));
+   registry->Register(KEY_NPAGE, std::move(std::make_unique<PageDownCommand>()));
+   registry->Register('K', std::move(std::make_unique<PageUpCommand>()));
