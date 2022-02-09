@@ -20,4 +20,11 @@ btn4 - tab     -- index view
 ```
 
 
+## Glow MD Viewer
 
+We also include the Glow Viewer: https://github.com/charmbracelet/glow/
+https://github.com/charmbracelet/glow/releases/download/v1.4.1/glow_1.4.1_linux_armv6.tar.gz
+
+## Less file
+
+This creates a less key file that we use to set esc/esc or tab to exit from the less pager.
