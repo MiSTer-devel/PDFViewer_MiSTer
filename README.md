@@ -1,12 +1,18 @@
 
-# PDF Viewer 
+# PDF Viewer
 
-This is a framebuffer pdfviewer from:
+This is a framebuffer pdfviewer:
+
+https://github.com/bemjo/pdfviewer
+
+forked from:
 
 https://github.com/jichu4n/jfbview
 
-That is compiled to run on MiSTer. There is a patch that adds escape, and enter to the keymapping for the viewer. This will allow it to work well with the joystick emulation.
-
+That is a modified version with MiSTer specific optimizations and fixes not appropriate for upstream.
+This adds escape, and enter to the keymapping for the viewer. This will allow it to work well with the joystick emulation.
+This add resume support which currently saves your last page in a metadata hashtable in the docs/ directory of your stored documents,
+your USB drive, network mount, or SD card.
 
 ## JOYSTICK:
 
@@ -17,6 +23,8 @@ btn1 - enter   -- next page
 btn2 - escape  -- quit
 btn3 - space   -- down
 btn4 - tab     -- index view
+L    - pageup  -- prev page
+R    - pagedn  -- next page
 ```
 
 
