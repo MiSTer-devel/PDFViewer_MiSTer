@@ -6,11 +6,10 @@ ENV DEBIAN_FRONTEND=noninteractive
 ENV MISTER_ROOT=/mister
 
 # Switches for Optimization
-#ENV CFLAGS="-mfloat-abi=hard -march=armv7-a -mfpu=neon"
-#ENV CXXFLAGS="-mfloat-abi=hard -march=armv7-a -mfpu=neon"
+#ENV CFLAGS="-mfloat-abi=hard -march=armv7-a -mfpu=neon-vfpv3 -mtune=cortex-a9"
+#ENV CXXFLAGS="-mfloat-abi=hard -march=armv7-a -mfpu=neon-vfpv3 -mtune=cortex-a9"
 ENV MAKEFLAGS="-j$(nproc)"
 
-# Core Developement Packages
 RUN apt-get update && apt-get upgrade -y && apt-get install -y \
 	autoconf \
 	automake \
@@ -19,7 +18,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
 	build-essential \
 	ca-certificates \
 	checkinstall \
-        cmake \
+	cmake \
 	curl \
 	flex \
 	gdb \
@@ -32,10 +31,12 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
 	libdjvulibre-dev \
 	libelf-dev \
 	libexpat-dev \
-	libfreetype6-dev \
+	#libfreetype6-dev \
 	liblcms2-dev \
 	libgmp3-dev \
-	libharfbuzz-dev \
+	#libharfbuzz-dev \
+	libwebp-dev \
+	libzstd-dev \
 	libjbig2dec0-dev \
 	libjsoncpp-dev \
 	liblz4-tool \
@@ -44,7 +45,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
  	libmupdf-dev \
 	#libncurses5-dev \
 	libpcap-dev \
-	libpng-dev \
+	#libpng-dev \
 	libpoppler-cpp-dev \
 	libreadline-dev \
 	libssl-dev \
@@ -71,7 +72,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y \
 	texinfo \
 	tree \
 	unzip \
-        vim \
+	vim \
 	wget \
 	xz-utils \
 	zlib1g-dev \
@@ -98,7 +99,7 @@ ENV export LC_ALL en_US.UTF-8
 
 # Base Directories
 RUN mkdir -p "${MISTER_ROOT}"  && \
-	chmod -R 777 "$MISTER_ROOT" 
+	chmod -R 777 "$MISTER_ROOT"
 
 
 # Fix some core dependencies without rebuilding all layers
@@ -143,105 +144,75 @@ CMD ["/bin/bash"]
 #RUN cd /usr/local/src/ &&  wget "https://github.com/ccxvii/mujs/archive/refs/tags/1.2.0.tar.gz" && \
 #	tar zxf 1.2.0.tar.gz && ls && cd mujs-1.2.0 && make && make install
 
-RUN cd /usr/local/src/ &&  wget "https://github.com/silnrsi/graphite/archive/refs/tags/1.3.14.tar.gz" && \
-	tar zxf 1.3.14.tar.gz && ls && cd graphite-1.3.14 && mkdir build && cd build && cmake ../ -DBUILD_SHARED_LIBS:bool=off && \
-	make && make install
 
-RUN cd /usr/local/src/ &&  wget "https://github.com/uclouvain/openjpeg/archive/refs/tags/v2.2.0.tar.gz" &&  \
-	tar zxf v2.2.0.tar.gz && ls && cd openjpeg-2.2.0/ && mkdir build && cd build && \
-	cmake ../ -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS:bool=off && \
-	make && make install
 
-RUN cd /usr/local/src/ &&  wget "https://invisible-mirror.net/archives/ncurses/ncurses-6.2.tar.gz" &&  \
-	tar zxf ncurses-6.2.tar.gz  && ls && cd ncurses* && ./configure --libdir=/usr/lib/arm-linux-gnueabihf --enable-widec --with-shared  &&  \
-	make && make install
+WORKDIR /usr/local/src/
+
+RUN wget "https://github.com/pnggroup/libpng/archive/refs/tags/v1.6.58.tar.gz" && tar zxf v1.6.58.tar.gz && rm v1.6.58.tar.gz
+RUN cd libpng-* && ./configure --prefix=/usr/local --disable-shared --enable-static \
+	CFLAGS="-Ofast -ffast-math -mfloat-abi=hard -mcpu=cortex-a9 -mtune=cortex-a9 -mfpu=neon-vfpv3" \
+	CXXFLAGS="-Ofast -ffast-math -mfloat-abi=hard -mcpu=cortex-a9 -mtune=cortex-a9 -mfpu=neon-vfpv3"
+RUN cd libpng-* && make && make install
+
+RUN wget "https://github.com/freetype/freetype/archive/refs/tags/VER-2-14-3.tar.gz" && tar zxf VER-2-14-3.tar.gz && rm VER-2-14-3.tar.gz
+RUN cd freetype-VER-* && mkdir build && cmake -Bbuild -DBUILD_SHARED_LIBS:bool=off -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr/local \
+	-DCMAKE_C_FLAGS="-Ofast -ffast-math -mfloat-abi=hard -mcpu=cortex-a9 -mtune=cortex-a9 -mfpu=neon-vfpv3" \
+	-DCMAKE_CXX_FLAGS="-Ofast -ffast-math -mfloat-abi=hard -mcpu=cortex-a9 -mtune=cortex-a9 -mfpu=neon-vfpv3"
+RUN cd freetype-VER-*/build && make && make install
+
+RUN wget "https://github.com/silnrsi/graphite/archive/refs/tags/1.3.14.tar.gz" && tar zxf 1.3.14.tar.gz && rm 1.3.14.tar.gz
+RUN cd graphite-* && sed -i '/add_subdirectory(tests)/d' CMakeLists.txt && mkdir build && cmake -Bbuild -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS:bool=off -DCMAKE_CXX_STANDARD_LIBRARIES="-lpng -lfreetype -ldl -lz" \
+	-DCMAKE_C_FLAGS="-Ofast -ffast-math -mfloat-abi=hard -mcpu=cortex-a9  -mtune=cortex-a9 -mfpu=neon-vfpv3" \
+	-DCMAKE_CXX_FLAGS="-Ofast -ffast-math -mfloat-abi=hard -mcpu=cortex-a9 -mtune=cortex-a9 -mfpu=neon-vfpv3"
+RUN cd graphite-*/build && make && make install
+
+RUN wget "https://github.com/uclouvain/openjpeg/archive/refs/tags/v2.5.4.tar.gz" && tar zxf v2.5.4.tar.gz && rm v2.5.4.tar.gz
+RUN cd openjpeg-*/ && mkdir build && cmake -Bbuild -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS:bool=off \
+	-DCMAKE_C_FLAGS="-Ofast -ffast-math -mfloat-abi=hard -mcpu=cortex-a9  -mtune=cortex-a9 -mfpu=neon-vfpv3" \
+	-DCMAKE_CXX_FLAGS="-Ofast -ffast-math -mfloat-abi=hard -mcpu=cortex-a9 -mtune=cortex-a9 -mfpu=neon-vfpv3"
+RUN cd openjpeg-*/build && make && make install
+
+RUN wget "https://github.com/libjpeg-turbo/libjpeg-turbo/archive/refs/tags/3.1.4.1.tar.gz" && tar zxf 3.1.4.1.tar.gz && rm 3.1.4.1.tar.gz
+RUN cd libjpeg-* && mkdir build && \
+	cmake -Bbuild -DCMAKE_BUILD_TYPE=Release -DENABLE_SHARED=off -DENABLE_STATIC=on -DCMAKE_INSTALL_PREFIX=/usr/local \
+	-DWITH_TOOLS=off -DWITH_TESTS=off -DWITH_SIMD=on -DWITH_TURBOJPEG=off -DWITH_JPEG8=off \
+	-DCMAKE_C_FLAGS="-Ofast -ffast-math -mfloat-abi=hard -mcpu=cortex-a9  -mtune=cortex-a9 -mfpu=neon-vfpv3" \
+	-DCMAKE_CXX_FLAGS="-Ofast -ffast-math -mfloat-abi=hard -mcpu=cortex-a9 -mtune=cortex-a9 -mfpu=neon-vfpv3"
+RUN cd libjpeg-*/build && make && make install
+
+RUN wget "https://github.com/harfbuzz/harfbuzz/archive/refs/tags/14.2.1.tar.gz" && tar zxf 14.2.1.tar.gz && rm 14.2.1.tar.gz
+RUN cd harfbuzz* && mkdir build && \
+	cmake -Bbuild -DCMAKE_BUILD_TYPE=Release  -DBUILD_SHARED_LIBS=off -DHB_BUILD_SUBSET=off -DCMAKE_PREFIX_PATH=/usr/local -DCMAKE_INSTALL_PREFIX=/usr/local \
+	-DHB_HAVE_GRAPHITE2=on -DHB_HAVE_FREETYPE=on -DHB_HAVE_GLIB=off -DHB_HAVE_ICU=off -DHB_HAVE_CAIRO=off -DHB_HAVE_DIRECTWRITE=off \
+	-DCMAKE_C_FLAGS="-Ofast -ffast-math -mfloat-abi=hard -mcpu=cortex-a9 -mtune=cortex-a9 -mfpu=neon-vfpv3" \
+	-DCMAKE_CXX_FLAGS="-Ofast -ffast-math -mfloat-abi=hard -mcpu=cortex-a9 -mtune=cortex-a9 -mfpu=neon-vfpv3"
+RUN cd harfbuzz*/build && make && make install
+
+RUN wget "https://invisible-mirror.net/archives/ncurses/ncurses-6.2.tar.gz" && tar zxf ncurses-6.2.tar.gz && rm ncurses-6.2.tar.gz
+RUN cd ncurses-* && ./configure --libdir=/usr/lib/arm-linux-gnueabihf --enable-widec --with-shared --without-manpages --without-tests --without-debug --without-ada --without-progs
+RUN cd ncurses-* && make && make install
 
 
 #
 # remove dynamic libraries so we can use static ones
 #
-RUN rm /usr/lib/arm-linux-gnueabihf/libharfbuzz.so* 
-RUN rm /usr/lib/arm-linux-gnueabihf/libopenjp2.so* 
-RUN rm /usr/local/lib/libopenjp2.so*
-RUN rm /usr/lib/arm-linux-gnueabihf/libjpeg.so 
-RUN cp /usr/local/lib/libgraphite2.a /usr/lib/arm-linux-gnueabihf/
-RUN rm /usr/lib/arm-linux-gnueabihf/libgraphite2.so*
+
+RUN cp /usr/local/lib/libpng*.a /usr/lib/arm-linux-gnueabihf/ && \
+	cp /usr/local/lib/libgraphite2.a /usr/lib/arm-linux-gnueabihf/ && \
+	cp /usr/local/lib/libharfbuzz*.a /usr/lib/arm-linux-gnueabihf/ && \
+	cp /usr/local/lib/libfreetype*.a /usr/lib/arm-linux-gnueabihf/ && \
+	rm /usr/lib/arm-linux-gnueabihf/libopenjp2* && cp /usr/local/lib/libopenjp2.a /usr/lib/arm-linux-gnueabihf/ && \
+	rm /usr/lib/arm-linux-gnueabihf/libjpeg.* && cp /usr/local/lib/libjpeg.a /usr/lib/arm-linux-gnueabihf/
 
 
 
-#
-# grab a copy of the pdf viewer, patch it, build it
-#
-RUN cd /usr/local/src/ && git clone  --recurse-submodules  "https://github.com/jichu4n/jfbview.git" && \
-	 ls && cd jfbview  
-ADD jfbview.patch /usr/local/src/jfbview.patch
-RUN cd /usr/local/src/jfbview && patch < /usr/local/src/jfbview.patch -p1 
-RUN cd /usr/local/src/jfbview && mkdir build && cd build && cmake .. -DCMAKE_CXX_STANDARD_LIBRARIES="-lgraphite2" && make
-
-
-
-#RUN cd /usr/local/src/ &&  wget "https://github.com/mm2/Little-CMS/archive/refs/tags/lcms2.8.tar.gz" &&  \
-#	tar zxf lcms2.8.tar.gz  && ls && cd Little-CMS-lcms2.8 && ./autogen.sh &&  \
-#	make && make install
-
-#RUN apt-get update && apt-get install -y \
-#	libfontconfig-dev uuid-dev libboost-all-dev
-
-
-
-#RUN cd /usr/local/src/ && wget "https://gitlab.freedesktop.org/poppler/poppler/-/archive/poppler-21.12.0/poppler-poppler-21.12.0.tar.gz" && \
-#	tar zxf poppler-poppler-21.12.0.tar.gz  && cd poppler-poppler-21.12.0 && mkdir build && cd build && \
-#  	cmake .. -DENABLE_QT4=OFF -DENABLE_QT4=OFF -DWITH_NSS3=OFF -DBUILD_SHARED_LIBS=OFF -DBUILD_SHARED_LIBS=OFF  && \
-#	make && make install
-
-#node-gyp ninja-build python
-
-
-
-
-#RUN cd /usr/local/src/ && wget "https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_66_RTM/src/nss-3.66-with-nspr-4.30.tar.gz" && \
-#	tar zxf nss-3.66-with-nspr-4.30.tar.gz  && ls && cd nss-3.66 
-#	nss/build.sh --static
-
-
-
-
-#RUN cd /usr/local/src/ &&  wget --no-check-certificate "https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.11.0/fontconfig-2.11.0.tar.gz" &&  \
-#	tar zxf fontconfig-2.11.0.tar.gz  && ls && cd fontconfig-2.11.0  && ./autogen.sh &&  \
-#	make && make install
-
-#RUN cd /usr/local/src/ && wget "https://ftp.mozilla.org/pub/security/nss/releases/NSS_3_26_RTM/src/nss-3.26-with-nspr-4.12.tar.gz" && \
-#	tar zxf nss-3.26-with-nspr-4.12.tar.gz && ls && cd  nss-3.26 && \
-#        cd nspr && ./configure --prefix /usr/ &&  make && make install && \
-#	cd ../nss && \
-#	echo "CFLAGS+=-I/usr/include/nspr/" > coreconf/Linux.mk.1 &&  \
-#	cp coreconf/Linux.mk coreconf/Linux.mk.2 && cat coreconf/Linux.mk.1 coreconf/Linux.mk.2 > coreconf/Linux.mk && \
-#        make nss_build_all  && \
-#        make nss_build_all  && \
-#        make nss_build_all  ; exit 0
-#
-#RUN cd /usr/local/src/nss-3.26/nss/ && make nss_build_all ; exit 0
-#RUN cd /usr/local/src/nss-3.26/nss/ && make nss_build_all ; exit 0
-#RUN cd /usr/local/src/nss-3.26/nss/ && make nss_build_all ; exit 0
-#RUN cd /usr/local/src/nss-3.26/nss/ && make nss_build_all ; exit 0
-#RUN cd /usr/local/src/nss-3.26/nss/ && make nss_build_all ; exit 0
-
-#
-# AJS CUT BELOW
-#
-
-#	tar zxf nss-3.26-with-nspr-4.12.tar.gz && ls && cd  nss-3.26 && cd nspr && ./configure --prefix /usr/ &&  make && make install && \
-#        cd nss && make nss_build_all && make install 
-
-#        d nss && echo "CFLAGS+=-I/usr/local/include/nspr/" >> coreconf/Linux.mk && 
-#        make && make install && ldconfig && make install
-
-
-
-# need to build and install nspr first, then need to add include to the Linux.mk file /usr/local/include/nspr
-# https://github.com/mm2/Little-CMS/archive/refs/tags/lcms2.8.tar.gz
-# https://gitlab.freedesktop.org/fontconfig/fontconfig/-/archive/2.11.0/fontconfig-2.11.0.tar.gz
-
-# gyp ninja-build
-# /usr/include/nspr usr/local/include/nspr
-# ./build.sh --static --system-nspr
+# grab a copy of the pdf viewer, build it
+ARG PROJECT_REFRESH=1
+RUN git clone --recursive "https://github.com/bemjo/pdfviewer.git"
+ARG PDFVIEWER_REFRESH=1
+RUN cd pdfviewer && git config pull.rebase true && git pull
+RUN cd pdfviewer && mkdir build && cmake -H. -Bbuild \
+	-DCMAKE_CXX_STANDARD_LIBRARIES="-lgraphite2 -ljpeg -lharfbuzz -lpng -lfreetype -ldl -lz" \
+	-DCMAKE_C_FLAGS="-Ofast -ffast-math -mfloat-abi=hard -mcpu=cortex-a9 -mtune=cortex-a9 -mfpu=neon-vfpv3" \
+	-DCMAKE_CXX_FLAGS="-Ofast -ffast-math -mfloat-abi=hard -mcpu=cortex-a9 -mtune=cortex-a9 -mfpu=neon-vfpv3"
+RUN cd pdfviewer/build && make
